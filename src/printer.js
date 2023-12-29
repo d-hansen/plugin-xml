@@ -47,12 +47,6 @@ function isWhitespaceIgnorable(opts, attributes, content) {
     return false;
   }
 
-  // If there are character data or reference nodes in the content, then we
-  // can't ignore the whitespace.
-  if (content.children.CData || content.children.reference) {
-    return false;
-  }
-
   // If there are comments in the content and the comments are ignore ranges,
   // then we can't ignore the whitespace.
   if (hasIgnoreRanges(content.children.Comment)) {
@@ -101,7 +95,7 @@ function printCharData(path, opts, print) {
     .map((value, index) => (index % 2 === 0 ? value : literalline));
 }
 
-function printContentFragments(path, print) {
+function printFragments(path, opts, print, isContent = true) {
   let response = [];
   const children = path.getValue();
 
@@ -114,27 +108,73 @@ function printContentFragments(path, print) {
   }
 
   if (children.chardata) {
-    response = response.concat(
-      path.map(
-        (charDataPath) => ({
-          offset: charDataPath.getValue().location.startOffset,
-          printed: print(charDataPath)
-        }),
-        "chardata"
-      )
-    );
+    let prevLocation;
+    path.each((charDataPath) => {
+      const chardata = charDataPath.getValue();
+      const location = chardata.location;
+      const charDataResponse = {
+        offset: location.startOffset,
+        startLine: location.startLine,
+        endLine: location.endLine
+      };
+      if (
+        isContent ||
+        (opts.xmlWhitespaceSensitivity === "preserve" &&
+          children.chardata.some(({ children }) => !!children.TEXT))
+      ) {
+        charDataResponse.printed = print(charDataPath);
+        charDataResponse.whitespace = true;
+        if (
+          prevLocation &&
+          prevLocation.endColumn &&
+          location.startColumn &&
+          location.startLine === prevLocation.endLine &&
+          location.startColumn === prevLocation.endColumn + 1
+        ) {
+          // continuation of previous fragment
+          const prevFragment = response[response.length - 1];
+          prevFragment.endLine = location.endLine;
+          prevFragment.printed = group([
+            prevFragment.printed,
+            charDataResponse.printed
+          ]);
+        } else {
+          prevLocation = location;
+          response.push(charDataResponse);
+        }
+      } else {
+        if (!chardata.children.TEXT) return;
+        const content = chardata.children.TEXT[0].image.trim();
+        charDataResponse.printed = group(
+          content
+            .split(/(\n)/g)
+            .map((value) =>
+              value === "\n"
+                ? literalline
+                : fill(
+                    value
+                      .split(/\b(\s+)\b/g)
+                      .map((segment, index) =>
+                        index % 2 === 0 ? segment : line
+                      )
+                  )
+            )
+        );
+        response.push(charDataResponse);
+      }
+    }, "chardata");
   }
 
   if (children.element) {
-    response = response.concat(
-      path.map(
-        (elementPath) => ({
-          offset: elementPath.getValue().location.startOffset,
-          printed: print(elementPath)
-        }),
-        "element"
-      )
-    );
+    path.each((elementPath) => {
+      const location = elementPath.getValue().location;
+      response.push({
+        offset: location.startOffset,
+        printed: print(elementPath),
+        startLine: location.startLine,
+        endLine: location.endLine
+      });
+    }, "element");
   }
 
   if (children.PROCESSING_INSTRUCTION) {
@@ -142,17 +182,15 @@ function printContentFragments(path, print) {
   }
 
   if (children.reference) {
-    response = response.concat(
-      path.map((referencePath) => {
-        const referenceNode = referencePath.getValue();
+    path.each((referencePath) => {
+      const referenceNode = referencePath.getValue();
 
-        return {
-          offset: referenceNode.location.startOffset,
-          printed: (referenceNode.children.CharRef ||
-            referenceNode.children.EntityRef)[0].image
-        };
-      }, "reference")
-    );
+      response.push({
+        offset: referenceNode.location.startOffset,
+        printed: (referenceNode.children.CharRef ||
+          referenceNode.children.EntityRef)[0].image
+      });
+    }, "reference");
   }
 
   return response;
@@ -160,7 +198,7 @@ function printContentFragments(path, print) {
 
 function printContent(path, opts, print) {
   let fragments = path.call(
-    (childrenPath) => printContentFragments(childrenPath, print),
+    (childrenPath) => printFragments(childrenPath, opts, print),
     "children"
   );
   const { Comment } = path.getValue().children;
@@ -272,118 +310,6 @@ function printDocument(path, opts, print) {
   ];
 }
 
-function printCharDataPreserve(path, print) {
-  let prevLocation;
-  const response = [];
-
-  path.each((charDataPath) => {
-    const chardata = charDataPath.getValue();
-    const location = chardata.location;
-    const content = print(charDataPath);
-
-    if (
-      prevLocation &&
-      location.startColumn &&
-      prevLocation.endColumn &&
-      location.startLine === prevLocation.endLine &&
-      location.startColumn === prevLocation.endColumn + 1
-    ) {
-      // continuation of previous fragment
-      const prevFragment = response[response.length - 1];
-      prevFragment.endLine = location.endLine;
-      prevFragment.printed = group([prevFragment.printed, content]);
-    } else {
-      response.push({
-        offset: location.startOffset,
-        startLine: location.startLine,
-        endLine: location.endLine,
-        printed: content,
-        whitespace: true
-      });
-    }
-    prevLocation = location;
-  }, "chardata");
-
-  return response;
-}
-
-function printCharDataIgnore(path) {
-  const response = [];
-
-  path.each((charDataPath) => {
-    const chardata = charDataPath.getValue();
-    if (!chardata.children.TEXT) {
-      return;
-    }
-
-    const content = chardata.children.TEXT[0].image.trim();
-    const printed = group(
-      content.split(/(\n)/g).map((value) => {
-        if (value === "\n") {
-          return literalline;
-        }
-
-        return fill(
-          value
-            .split(/\b( +)\b/g)
-            .map((segment, index) => (index % 2 === 0 ? segment : line))
-        );
-      })
-    );
-
-    const location = chardata.location;
-    response.push({
-      offset: location.startOffset,
-      startLine: location.startLine,
-      endLine: location.endLine,
-      printed
-    });
-  }, "chardata");
-
-  return response;
-}
-
-function printElementFragments(path, opts, print) {
-  const children = path.getValue();
-  let response = [];
-
-  if (children.Comment) {
-    response = response.concat(path.map(printIToken, "Comment"));
-  }
-
-  if (children.chardata) {
-    if (
-      children.chardata.some(({ children }) => !!children.TEXT) &&
-      opts.xmlWhitespaceSensitivity === "preserve"
-    ) {
-      response = response.concat(printCharDataPreserve(path, print));
-    } else {
-      response = response.concat(printCharDataIgnore(path, print));
-    }
-  }
-
-  if (children.element) {
-    response = response.concat(
-      path.map((elementPath) => {
-        const location = elementPath.getValue().location;
-
-        return {
-          offset: location.startOffset,
-          startLine: location.startLine,
-          endLine: location.endLine,
-          printed: print(elementPath)
-        };
-      }, "element")
-    );
-  }
-
-  if (children.PROCESSING_INSTRUCTION) {
-    response = response.concat(path.map(printIToken, "PROCESSING_INSTRUCTION"));
-  }
-
-  return response;
-}
-
 function printElement(path, opts, print) {
   const {
     OPEN,
@@ -484,7 +410,7 @@ function printElement(path, opts, print) {
 
   if (isWhitespaceIgnorable(opts, attribute, content[0])) {
     const fragments = path.call(
-      (childrenPath) => printElementFragments(childrenPath, opts, print),
+      (childrenPath) => printFragments(childrenPath, opts, print, false),
       "children",
       "content",
       0,
