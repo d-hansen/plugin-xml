@@ -14,7 +14,8 @@ exports[`bracketSameLine => true 1`] = `
   viewBox="0 0 200 100">
   <title>Style inheritance and the use element</title>
   <desc _attr="attr">
-    &anp; &#12345;
+    &anp;
+    &#12345;
     <![CDATA[
       foo
     ]]>
@@ -143,7 +144,8 @@ exports[`bracketSameLine => true, xmlSelfClosingSpace => false 1`] = `
   viewBox="0 0 200 100">
   <title>Style inheritance and the use element</title>
   <desc _attr="attr">
-    &anp; &#12345;
+    &anp;
+    &#12345;
     <![CDATA[
       foo
     ]]>
@@ -398,7 +400,8 @@ exports[`singleAttributePerLine => true 1`] = `
 >
   <title>Style inheritance and the use element</title>
   <desc _attr="attr">
-    &anp; &#12345;
+    &anp;
+    &#12345;
     <![CDATA[
       foo
     ]]>
@@ -935,7 +938,8 @@ exports[`xmlSelfClosingSpace => false 1`] = `
 >
   <title>Style inheritance and the use element</title>
   <desc _attr="attr">
-    &anp; &#12345;
+    &anp;
+    &#12345;
     <![CDATA[
       foo
     ]]>
@@ -1194,7 +1198,8 @@ exports[`xmlWhitespaceSensitivity => ignore 1`] = `
 >
   <title>Style inheritance and the use element</title>
   <desc _attr="attr">
-    &anp; &#12345;
+    &anp;
+    &#12345;
     <![CDATA[
       foo
     ]]>
