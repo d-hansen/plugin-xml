@@ -4,8 +4,10 @@
   "description": "prettier plugin for XML",
   "type": "module",
   "main": "src/plugin.js",
+  "private": false,
   "scripts": {
     "lint": "eslint --cache .",
+    "prepare": "node bin/languages.js && pinst --disable",
     "prepack": "node bin/languages.js && pinst --disable",
     "postpack": "pinst --enable",
     "postinstall": "husky install",
