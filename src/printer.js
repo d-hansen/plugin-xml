@@ -147,10 +147,10 @@ function printFragments(path, opts, print, isContent = true) {
         const content = chardata.children.TEXT[0].image.trim();
         charDataResponse.printed = group(
           content
-            .split(/(\n)/g)
+            .split(/\s*(\n)\s*/g)
             .map((value) =>
               value === "\n"
-                ? literalline
+                ? line
                 : fill(
                     value
                       .split(/\b(\s+)\b/g)
