@@ -30,7 +30,8 @@
   </style>
 
   <div><!-- this comment should always stay here on the end -->
-<content apples="orange" /> <!-- this comment should also stay here on the end with the extra whitespace -->
+<content apples="oranges" /> <!-- this comment should get wrapped and indented because it's too long -->
+  <content apples="bananas" /> <!-- this comment should stay -->
   <div>
  <content><!-- this comment should also stay here without the extra whitespace -->
   <topic>A Lot of Young Men Once were drafted</topic>

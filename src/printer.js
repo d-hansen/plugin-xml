@@ -488,10 +488,12 @@ function printElement(path, opts, print) {
         docs.push(hardline, hardline, node.printed);
       } else if (node.isComment) {
         // Node is a comment, determine whether to preserve previous whitespace
-        if (!prevNode || !prevNode.isWhitespace || prevNode.hasNewLine)
-          docs.push(hardline);
-        else if (prevNode.isWhitespace) docs.push(prevNode.printed);
-        docs.push(node.printed);
+        if (prevNode && prevNode.isWhitespace) {
+          if (prevNode.hasNewLine) docs.push(hardline, node.printed);
+          else docs.push(indent(group([line, node.printed])));
+        } else {
+          docs.push(node.printed);
+        }
       } else if (
         node.isReference &&
         (lastNode.isCharData || lastNode.isReference)
