@@ -6,8 +6,8 @@
   "main": "src/plugin.js",
   "scripts": {
     "lint": "eslint --cache .",
+    "prepack": "node bin/languages.js",
     "prepare": "node bin/languages.js && husky install",
-    "prepack": "node bin/languages.js && husky install",
     "print": "prettier --plugin=.",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
