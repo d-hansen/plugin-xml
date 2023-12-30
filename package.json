@@ -7,8 +7,7 @@
   "private": false,
   "scripts": {
     "lint": "eslint --cache .",
-    "prepare": "node bin/languages.js && pinst --disable",
-    "prepack": "node bin/languages.js && pinst --disable",
+    "prepack": "pinst --disable && node bin/languages.js",
     "postpack": "pinst --enable",
     "postinstall": "husky install",
     "print": "prettier --plugin=.",
@@ -16,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/prettier/plugin-xml.git"
+    "url": "git://github.com/d-hansen/plugin-xml.git"
   },
   "author": "Kevin Newton",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/prettier/plugin-xml/issues"
   },
-  "homepage": "https://github.com/prettier/plugin-xml#readme",
+  "homepage": "https://github.com/d-hansen/plugin-xml#readme",
   "dependencies": {
     "@xml-tools/parser": "^1.0.11"
   },
