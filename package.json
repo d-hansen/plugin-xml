@@ -7,9 +7,7 @@
   "private": false,
   "scripts": {
     "lint": "eslint --cache .",
-    "prepack": "pinst --disable && node bin/languages.js",
-    "postpack": "pinst --enable",
-    "postinstall": "husky install",
+    "prepack": "node bin/languages.js",
     "print": "prettier --plugin=.",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
@@ -36,7 +34,6 @@
     "jest": "^29.2.1",
     "linguist-languages": "^7.21.0",
     "lint-staged": "^15.0.1",
-    "pinst": "^3.0.0",
     "prettier": "^3.0.0"
   },
   "eslintConfig": {
