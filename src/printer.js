@@ -95,16 +95,22 @@ function printCharData(path, opts, print) {
     .map((value, index) => (index % 2 === 0 ? value : literalline));
 }
 
-function printFragments(path, opts, print, isContent = true) {
+function printFragments(path, opts, print, isContent = false) {
   let response = [];
   const children = path.getValue();
 
   if (children.CData) {
-    response = response.concat(path.map(printIToken, "CData"));
+    path.each((cDataPath) => {
+      response.push(Object.assign(printIToken(cDataPath), { isCData: true }));
+    }, "CData");
   }
 
   if (children.Comment) {
-    response = response.concat(path.map(printIToken, "Comment"));
+    path.each((commentPath) => {
+      response.push(
+        Object.assign(printIToken(commentPath), { isComment: true })
+      );
+    }, "Comment");
   }
 
   if (children.chardata) {
@@ -115,7 +121,8 @@ function printFragments(path, opts, print, isContent = true) {
       const charDataResponse = {
         offset: location.startOffset,
         startLine: location.startLine,
-        endLine: location.endLine
+        endLine: location.endLine,
+        isCharData: true
       };
       if (
         isContent ||
@@ -123,7 +130,7 @@ function printFragments(path, opts, print, isContent = true) {
           children.chardata.some(({ children }) => !!children.TEXT))
       ) {
         charDataResponse.printed = print(charDataPath);
-        charDataResponse.whitespace = true;
+        charDataResponse.preserveWhitespace = true;
         if (
           prevLocation &&
           prevLocation.endColumn &&
@@ -142,8 +149,14 @@ function printFragments(path, opts, print, isContent = true) {
           prevLocation = location;
           response.push(charDataResponse);
         }
+      } else if (!chardata.children.TEXT) {
+        // Add a placeholder if this SEA_WS contained a newline.
+        // This will be used to determine if a comment should stay on the same line or a new line
+        charDataResponse.isWhitespace = true;
+        charDataResponse.printed = chardata.children.SEA_WS[0].image;
+        charDataResponse.hasNewLine = charDataResponse.printed.includes("\n");
+        response.push(charDataResponse);
       } else {
-        if (!chardata.children.TEXT) return;
         const content = chardata.children.TEXT[0].image.trim();
         charDataResponse.printed = group(
           content
@@ -172,7 +185,8 @@ function printFragments(path, opts, print, isContent = true) {
         offset: location.startOffset,
         printed: print(elementPath),
         startLine: location.startLine,
-        endLine: location.endLine
+        endLine: location.endLine,
+        isElement: true
       });
     }, "element");
   }
@@ -188,7 +202,8 @@ function printFragments(path, opts, print, isContent = true) {
       response.push({
         offset: referenceNode.location.startOffset,
         printed: (referenceNode.children.CharRef ||
-          referenceNode.children.EntityRef)[0].image
+          referenceNode.children.EntityRef)[0].image,
+        isReference: true
       });
     }, "reference");
   }
@@ -198,7 +213,7 @@ function printFragments(path, opts, print, isContent = true) {
 
 function printContent(path, opts, print) {
   let fragments = path.call(
-    (childrenPath) => printFragments(childrenPath, opts, print),
+    (childrenPath) => printFragments(childrenPath, opts, print, true),
     "children"
   );
   const { Comment } = path.getValue().children;
@@ -226,10 +241,12 @@ function printContent(path, opts, print) {
 
     // Filter the printed children to only include the ones that are
     // outside of each of the ignored ranges
-    fragments = fragments.filter((fragment) =>
-      ignoreRanges.every(
-        ({ start, end }) => fragment.offset < start || fragment.offset > end
-      )
+    fragments = fragments.filter(
+      (fragment) =>
+        !fragment.isWhitespace &&
+        ignoreRanges.every(
+          ({ start, end }) => fragment.offset < start || fragment.offset > end
+        )
     );
 
     // Push each of the ignored ranges into the child list as its own
@@ -409,18 +426,19 @@ function printElement(path, opts, print) {
   ]);
 
   if (isWhitespaceIgnorable(opts, attribute, content[0])) {
-    const fragments = path.call(
-      (childrenPath) => printFragments(childrenPath, opts, print, false),
+    const allFragments = path.call(
+      (childrenPath) => printFragments(childrenPath, opts, print),
       "children",
       "content",
       0,
       "children"
     );
-    fragments.sort((left, right) => left.offset - right.offset);
+    allFragments.sort((left, right) => left.offset - right.offset);
+    const fragments = allFragments.filter((fragment) => !fragment.isWhitespace);
 
     if (
       opts.xmlWhitespaceSensitivity === "preserve" &&
-      fragments.some(({ whitespace }) => whitespace)
+      fragments.some(({ preserveWhitespace }) => preserveWhitespace)
     ) {
       return group([
         openTag,
@@ -450,17 +468,54 @@ function printElement(path, opts, print) {
     }
 
     const docs = [];
-    let lastLine = fragments[0].startLine;
+    let lastNode;
 
-    fragments.forEach((node) => {
-      if (node.startLine - lastLine >= 2) {
-        docs.push(hardline, hardline);
+    allFragments.forEach((node, index) => {
+      if (node.isWhitespace) return;
+      const prevNode = allFragments[index - 1];
+
+      if (!lastNode) {
+        if (
+          !node.isComment ||
+          (prevNode && prevNode.isWhitespace && prevNode.hasNewLine)
+        ) {
+          // First node, starts out with a hardline break
+          docs.push(hardline);
+        }
+        docs.push(node.printed);
+      } else if (node.startLine - lastNode.endLine >= 2) {
+        // If we skipped multiple lines, output one extra blank line
+        docs.push(hardline, hardline, node.printed);
+      } else if (node.isComment) {
+        // Node is a comment, determine whether to preserve previous whitespace
+        if (!prevNode || !prevNode.isWhitespace || prevNode.hasNewLine)
+          docs.push(hardline);
+        else if (prevNode.isWhitespace) docs.push(prevNode.printed);
+        docs.push(node.printed);
+      } else if (
+        node.isReference &&
+        (lastNode.isCharData || lastNode.isReference)
+      ) {
+        // Merge this reference node onto the last nodes group/fill parts
+        const lastDoc = docs[docs.length - 1];
+        if (lastDoc.contents) {
+          lastDoc.contents[0].parts.push(line, node.printed);
+        } else {
+          docs[docs.length - 1] = group(fill([lastDoc, line, node.printed]));
+        }
+      } else if (node.isCharData && lastNode.isReference) {
+        const lastDoc = docs[docs.length - 1];
+        const parts = node.printed.contents[0].parts;
+        // Merge this text node onto the last nodes group/fill parts
+        if (lastDoc.contents) {
+          lastDoc.contents[0].parts.push(line, ...parts);
+        } else {
+          docs[docs.length - 1] = group(fill([lastDoc, line, ...parts]));
+        }
       } else {
-        docs.push(hardline);
+        docs.push(hardline, node.printed);
       }
-
-      docs.push(node.printed);
-      lastLine = node.endLine;
+      lastNode = node;
     });
 
     return group([openTag, indent(docs), hardline, closeTag]);
