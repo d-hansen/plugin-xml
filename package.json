@@ -7,7 +7,7 @@
   "private": false,
   "scripts": {
     "lint": "eslint --cache .",
-    "prepack": "node bin/languages.js",
+    "postinstall": "node bin/languages.js",
     "print": "prettier --plugin=.",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
