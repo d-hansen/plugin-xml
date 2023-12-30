@@ -30,12 +30,14 @@
   </style>
 
   <div><!-- this comment should always stay here on the end -->
-<content /> <!-- this comment should also stay here on the end with the extra whitespace -->
-  </div>
+<content apples="orange" /> <!-- this comment should also stay here on the end with the extra whitespace -->
   <div>
+ <content><!-- this comment should also stay here without the extra whitespace -->
+  <topic>A Lot of Young Men Once were drafted</topic>
 <!-- this is a comment that should get properly formatted/indented on a new line -->
-<content />
+  </content>
   </div>
+</div>
 
   <script value="lint" />
 
