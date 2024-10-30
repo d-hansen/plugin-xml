@@ -8,7 +8,7 @@ const ignoreStartComment = "<!-- prettier-ignore-start -->";
 const ignoreEndComment = "<!-- prettier-ignore-end -->";
 
 function hasIgnoreRanges(comments) {
-  if (!comments || comments.length === 0) {
+  if (comments.length === 0) {
     return false;
   }
 
@@ -26,30 +26,40 @@ function hasIgnoreRanges(comments) {
   return false;
 }
 
-function isWhitespaceIgnorable(opts, attributes, content) {
+function isWhitespaceIgnorable(opts, name, attributes, content) {
   // If the whitespace sensitivity setting is "strict", then we can't ignore the
   // whitespace.
   if (opts.xmlWhitespaceSensitivity === "strict") {
     return false;
   }
 
+  // If we have an xsl:text element, then we cannot ignore the whitespace.
+  if (name === "xsl:text") {
+    return false;
+  }
+
   // If there is an xml:space attribute set to "preserve", then we can't ignore
   // the whitespace.
   if (
-    attributes &&
     attributes.some(
       (attribute) =>
         attribute &&
-        attribute.children.Name[0].image === "xml:space" &&
-        attribute.children.STRING[0].image.slice(1, -1) === "preserve"
+        attribute.Name === "xml:space" &&
+        attribute.STRING.slice(1, -1) === "preserve"
     )
   ) {
     return false;
   }
 
+  // If there are character data nodes in the content, then we can't ignore the
+  // whitespace.
+  if (content.CData.length > 0) {
+    return false;
+  }
+
   // If there are comments in the content and the comments are ignore ranges,
   // then we can't ignore the whitespace.
-  if (hasIgnoreRanges(content.children.Comment)) {
+  if (hasIgnoreRanges(content.Comment)) {
     return false;
   }
 
@@ -69,154 +79,65 @@ function printIToken(path) {
 }
 
 function printAttribute(path, opts, print) {
-  const { Name, EQUALS, STRING } = path.getValue().children;
+  const { Name, EQUALS, STRING } = path.getValue();
 
   let attributeValue;
   if (opts.xmlQuoteAttributes === "double") {
-    const content = STRING[0].image.slice(1, -1).replaceAll('"', "&quot;");
+    const content = STRING.slice(1, -1).replaceAll('"', "&quot;");
     attributeValue = `"${content}"`;
   } else if (opts.xmlQuoteAttributes === "single") {
-    const content = STRING[0].image.slice(1, -1).replaceAll("'", "&apos;");
+    const content = STRING.slice(1, -1).replaceAll("'", "&apos;");
     attributeValue = `'${content}'`;
   } else {
     // preserve
-    attributeValue = STRING[0].image;
+    attributeValue = STRING;
   }
 
-  return [Name[0].image, EQUALS[0].image, attributeValue];
+  return [Name, EQUALS, attributeValue];
 }
 
 function printCharData(path, opts, print) {
-  const { SEA_WS, TEXT } = path.getValue().children;
-  const [{ image }] = SEA_WS || TEXT;
+  const { SEA_WS, TEXT } = path.getValue();
+  const image = SEA_WS || TEXT;
 
   return image
     .split(/(\n)/g)
     .map((value, index) => (index % 2 === 0 ? value : literalline));
 }
 
-function printFragments(path, opts, print, isContent = false) {
-  let response = [];
-  const children = path.getValue();
-
-  if (children.CData) {
-    path.each((cDataPath) => {
-      response.push(Object.assign(printIToken(cDataPath), { isCData: true }));
-    }, "CData");
-  }
-
-  if (children.Comment) {
-    path.each((commentPath) => {
-      response.push(
-        Object.assign(printIToken(commentPath), { isComment: true })
-      );
-    }, "Comment");
-  }
-
-  if (children.chardata) {
-    let prevLocation;
-    path.each((charDataPath) => {
-      const chardata = charDataPath.getValue();
-      const location = chardata.location;
-      const charDataResponse = {
-        offset: location.startOffset,
-        startLine: location.startLine,
-        endLine: location.endLine,
-        isCharData: true
-      };
-      if (
-        isContent ||
-        (opts.xmlWhitespaceSensitivity === "preserve" &&
-          children.chardata.some(({ children }) => !!children.TEXT))
-      ) {
-        charDataResponse.printed = print(charDataPath);
-        charDataResponse.preserveWhitespace = true;
-        if (
-          prevLocation &&
-          prevLocation.endColumn &&
-          location.startColumn &&
-          location.startLine === prevLocation.endLine &&
-          location.startColumn === prevLocation.endColumn + 1
-        ) {
-          // continuation of previous fragment
-          const prevFragment = response[response.length - 1];
-          prevFragment.endLine = location.endLine;
-          prevFragment.printed = group([
-            prevFragment.printed,
-            charDataResponse.printed
-          ]);
-        } else {
-          prevLocation = location;
-          response.push(charDataResponse);
-        }
-      } else if (!chardata.children.TEXT) {
-        // Add a placeholder if this SEA_WS contained a newline.
-        // This will be used to determine if a comment should stay on the same line or a new line
-        charDataResponse.isWhitespace = true;
-        charDataResponse.printed = chardata.children.SEA_WS[0].image;
-        charDataResponse.hasNewLine = charDataResponse.printed.includes("\n");
-        response.push(charDataResponse);
-      } else {
-        const content = chardata.children.TEXT[0].image.trim();
-        charDataResponse.printed = group(
-          content
-            .split(/\s*(\n)\s*/g)
-            .map((value) =>
-              value === "\n"
-                ? line
-                : fill(
-                    value
-                      .split(/\b(\s+)\b/g)
-                      .map((segment, index) =>
-                        index % 2 === 0 ? segment : line
-                      )
-                  )
-            )
-        );
-        response.push(charDataResponse);
-      }
-    }, "chardata");
-  }
-
-  if (children.element) {
-    path.each((elementPath) => {
-      const location = elementPath.getValue().location;
-      response.push({
-        offset: location.startOffset,
-        printed: print(elementPath),
-        startLine: location.startLine,
-        endLine: location.endLine,
-        isElement: true
-      });
-    }, "element");
-  }
-
-  if (children.PROCESSING_INSTRUCTION) {
-    response = response.concat(path.map(printIToken, "PROCESSING_INSTRUCTION"));
-  }
-
-  if (children.reference) {
-    path.each((referencePath) => {
+function printContentFragments(path, print) {
+  return [
+    ...path.map(printIToken, "CData"),
+    ...path.map(printIToken, "Comment"),
+    ...path.map(
+      (charDataPath) => ({
+        offset: charDataPath.getValue().location.startOffset,
+        printed: print(charDataPath)
+      }),
+      "chardata"
+    ),
+    ...path.map(
+      (elementPath) => ({
+        offset: elementPath.getValue().location.startOffset,
+        printed: print(elementPath)
+      }),
+      "element"
+    ),
+    ...path.map(printIToken, "PROCESSING_INSTRUCTION"),
+    ...path.map((referencePath) => {
       const referenceNode = referencePath.getValue();
 
-      response.push({
+      return {
         offset: referenceNode.location.startOffset,
-        printed: (referenceNode.children.CharRef ||
-          referenceNode.children.EntityRef)[0].image,
-        isReference: true
-      });
-    }, "reference");
-  }
-
-  return response;
+        printed: print(referencePath)
+      };
+    }, "reference")
+  ];
 }
 
 function printContent(path, opts, print) {
-  let fragments = path.call(
-    (childrenPath) => printFragments(childrenPath, opts, print, true),
-    "children"
-  );
-  const { Comment } = path.getValue().children;
+  let fragments = printContentFragments(path, print);
+  const { Comment } = path.getValue();
 
   if (hasIgnoreRanges(Comment)) {
     Comment.sort((left, right) => left.startOffset - right.startOffset);
@@ -241,12 +162,10 @@ function printContent(path, opts, print) {
 
     // Filter the printed children to only include the ones that are
     // outside of each of the ignored ranges
-    fragments = fragments.filter(
-      (fragment) =>
-        !fragment.isWhitespace &&
-        ignoreRanges.every(
-          ({ start, end }) => fragment.offset < start || fragment.offset > end
-        )
+    fragments = fragments.filter((fragment) =>
+      ignoreRanges.every(
+        ({ start, end }) => fragment.offset < start || fragment.offset > end
+      )
     );
 
     // Push each of the ignored ranges into the child list as its own
@@ -266,58 +185,52 @@ function printContent(path, opts, print) {
 }
 
 function printDocTypeDecl(path, opts, print) {
-  const { DocType, Name, externalID, CLOSE } = path.getValue().children;
-  const parts = [DocType[0].image, " ", Name[0].image];
+  const { DocType, Name, externalID, CLOSE } = path.getValue();
+  const parts = [DocType, " ", Name];
 
   if (externalID) {
-    parts.push(" ", path.call(print, "children", "externalID", 0));
+    parts.push(" ", path.call(print, "externalID"));
   }
 
-  return group([...parts, CLOSE[0].image]);
+  return group([...parts, CLOSE]);
 }
 
 function printDocument(path, opts, print) {
-  const { docTypeDecl, element, misc, prolog } = path.getValue().children;
+  const { docTypeDecl, element, misc, prolog } = path.getValue();
   const fragments = [];
 
   if (docTypeDecl) {
     fragments.push({
-      offset: docTypeDecl[0].location.startOffset,
-      printed: path.call(print, "children", "docTypeDecl", 0)
+      offset: docTypeDecl.location.startOffset,
+      printed: path.call(print, "docTypeDecl")
     });
   }
 
   if (prolog) {
     fragments.push({
-      offset: prolog[0].location.startOffset,
-      printed: path.call(print, "children", "prolog", 0)
+      offset: prolog.location.startOffset,
+      printed: path.call(print, "prolog")
     });
   }
 
-  if (misc) {
-    misc.forEach((node) => {
-      if (node.children.PROCESSING_INSTRUCTION) {
-        fragments.push({
-          offset: node.location.startOffset,
-          printed: node.children.PROCESSING_INSTRUCTION[0].image
-        });
-      } else if (node.children.Comment) {
-        fragments.push({
-          offset: node.location.startOffset,
-          printed: node.children.Comment[0].image
-        });
-      }
+  path.each((miscPath) => {
+    const misc = miscPath.getValue();
+
+    fragments.push({
+      offset: misc.location.startOffset,
+      printed: print(miscPath)
     });
-  }
+  }, "misc");
 
   if (element) {
     fragments.push({
-      offset: element[0].location.startOffset,
-      printed: path.call(print, "children", "element", 0)
+      offset: element.location.startOffset,
+      printed: path.call(print, "element")
     });
   }
 
   fragments.sort((left, right) => left.offset - right.offset);
+
   return [
     join(
       hardline,
@@ -325,6 +238,126 @@ function printDocument(path, opts, print) {
     ),
     hardline
   ];
+}
+
+function printCharDataPreserve(path, print) {
+  let prevLocation;
+  const response = [];
+
+  path.each((charDataPath) => {
+    const chardata = charDataPath.getValue();
+    const location = chardata.location;
+    const content = print(charDataPath);
+
+    if (
+      prevLocation &&
+      location.startColumn &&
+      prevLocation.endColumn &&
+      location.startLine === prevLocation.endLine &&
+      location.startColumn === prevLocation.endColumn + 1
+    ) {
+      // continuation of previous fragment
+      const prevFragment = response[response.length - 1];
+      prevFragment.endLine = location.endLine;
+      prevFragment.printed = group([prevFragment.printed, content]);
+    } else {
+      response.push({
+        offset: location.startOffset,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        printed: content,
+        whitespace: true
+      });
+    }
+    prevLocation = location;
+  }, "chardata");
+
+  return response;
+}
+
+function printCharDataIgnore(path) {
+  const response = [];
+
+  path.each((charDataPath) => {
+    const chardata = charDataPath.getValue();
+    if (!chardata.TEXT) {
+      return;
+    }
+
+    const content = chardata.TEXT.replaceAll(/^[\t\n\r\s]+|[\t\n\r\s]+$/g, "");
+    const printed = group(
+      content.split(/(\n)/g).map((value) => {
+        if (value === "\n") {
+          return literalline;
+        }
+
+        return fill(
+          value
+            .split(/\b( +)\b/g)
+            .map((segment, index) => (index % 2 === 0 ? segment : line))
+        );
+      })
+    );
+
+    const location = chardata.location;
+    response.push({
+      offset: location.startOffset,
+      startLine: location.startLine,
+      endLine: location.endLine,
+      printed
+    });
+  }, "chardata");
+
+  return response;
+}
+
+function printElementFragments(path, opts, print) {
+  const children = path.getValue();
+  let response = [];
+
+  response = response.concat(path.map(printIToken, "Comment"));
+
+  if (children.chardata.length > 0) {
+    if (
+      children.chardata.some((chardata) => !!chardata.TEXT) &&
+      opts.xmlWhitespaceSensitivity === "preserve"
+    ) {
+      response = response.concat(printCharDataPreserve(path, print));
+    } else {
+      response = response.concat(printCharDataIgnore(path, print));
+    }
+  }
+
+  response = response.concat(
+    path.map((elementPath) => {
+      const location = elementPath.getValue().location;
+
+      return {
+        offset: location.startOffset,
+        startLine: location.startLine,
+        endLine: location.endLine,
+        printed: print(elementPath)
+      };
+    }, "element")
+  );
+
+  response = response.concat(path.map(printIToken, "PROCESSING_INSTRUCTION"));
+
+  response = response.concat(
+    path.map((referencePath) => {
+      const referenceNode = referencePath.getValue();
+
+      return {
+        type: "reference",
+        offset: referenceNode.location.startOffset,
+        startLine: referenceNode.location.startLine,
+        endLine: referenceNode.location.endLine,
+        printed: print(referencePath)
+      };
+    }, "reference")
+  );
+
+  return response;
 }
 
 function printElement(path, opts, print) {
@@ -338,24 +371,23 @@ function printElement(path, opts, print) {
     END_NAME,
     END,
     SLASH_CLOSE
-  } = path.getValue().children;
+  } = path.getValue();
 
-  const parts = [OPEN[0].image, Name[0].image];
+  const parts = [OPEN, Name];
 
-  if (attribute) {
+  if (attribute.length > 0) {
     const attributes = path.map(
       (attributePath) => ({
         node: attributePath.getValue(),
         printed: print(attributePath)
       }),
-      "children",
       "attribute"
     );
 
     if (opts.xmlSortAttributesByKey) {
       attributes.sort((left, right) => {
-        const leftAttr = left.node.children.Name[0].image;
-        const rightAttr = right.node.children.Name[0].image;
+        const leftAttr = left.node.Name;
+        const rightAttr = right.node.Name;
 
         // Check if the attributes are xmlns.
         if (leftAttr === "xmlns") return -1;
@@ -406,39 +438,39 @@ function printElement(path, opts, print) {
   }
 
   if (SLASH_CLOSE) {
-    return group([...parts, space, SLASH_CLOSE[0].image]);
+    return group([...parts, space, SLASH_CLOSE]);
   }
 
-  if (Object.keys(content[0].children).length === 0) {
+  if (
+    content.chardata.length === 0 &&
+    content.CData.length === 0 &&
+    content.Comment.length === 0 &&
+    content.element.length === 0 &&
+    content.PROCESSING_INSTRUCTION.length === 0 &&
+    content.reference.length === 0
+  ) {
     return group([...parts, space, "/>"]);
   }
 
   const openTag = group([
     ...parts,
     opts.bracketSameLine ? "" : softline,
-    START_CLOSE[0].image
+    START_CLOSE
   ]);
 
-  const closeTag = group([
-    SLASH_OPEN[0].image,
-    END_NAME[0].image,
-    END[0].image
-  ]);
+  const closeTag = group([SLASH_OPEN, END_NAME, END]);
 
-  if (isWhitespaceIgnorable(opts, attribute, content[0])) {
-    const allFragments = path.call(
-      (childrenPath) => printFragments(childrenPath, opts, print),
-      "children",
-      "content",
-      0,
-      "children"
+  if (isWhitespaceIgnorable(opts, Name, attribute, content)) {
+    const fragments = path.call(
+      (childrenPath) => printElementFragments(childrenPath, opts, print),
+      "content"
     );
-    allFragments.sort((left, right) => left.offset - right.offset);
-    const fragments = allFragments.filter((fragment) => !fragment.isWhitespace);
+
+    fragments.sort((left, right) => left.offset - right.offset);
 
     if (
       opts.xmlWhitespaceSensitivity === "preserve" &&
-      fragments.some(({ preserveWhitespace }) => preserveWhitespace)
+      fragments.some(({ whitespace }) => whitespace)
     ) {
       return group([
         openTag,
@@ -447,13 +479,15 @@ function printElement(path, opts, print) {
       ]);
     }
 
+    if (fragments.length === 0) {
+      return group([...parts, space, "/>"]);
+    }
+
     // If the only content of this tag is chardata, then use a softline so
     // that we won't necessarily break (to allow <foo>bar</foo>).
     if (
       fragments.length === 1 &&
-      (content[0].children.chardata || []).filter(
-        (chardata) => chardata.children.TEXT
-      ).length === 1
+      content.chardata.filter((chardata) => chardata.TEXT).length === 1
     ) {
       return group([
         openTag,
@@ -463,105 +497,86 @@ function printElement(path, opts, print) {
       ]);
     }
 
-    if (fragments.length === 0) {
-      return group([...parts, space, "/>"]);
+    let delimiter = hardline;
+
+    // If the only content is both chardata and references, then use a softline
+    // so that we won't necessarily break.
+    if (
+      fragments.length ===
+      content.chardata.filter((chardata) => chardata.TEXT).length +
+        content.reference.length
+    ) {
+      delimiter = " ";
     }
 
-    const docs = [];
-    let lastNode;
+    const docs = [hardline];
+    let lastLine = fragments[0].startLine;
 
-    allFragments.forEach((node, index) => {
-      if (node.isWhitespace) return;
-      const prevNode = allFragments[index - 1];
-
-      if (!lastNode) {
-        if (
-          !node.isComment ||
-          (prevNode && prevNode.isWhitespace && prevNode.hasNewLine)
-        ) {
-          // First node, starts out with a hardline break
-          docs.push(hardline);
-        }
-        docs.push(node.printed);
-      } else if (node.startLine - lastNode.endLine >= 2) {
-        // If we skipped multiple lines, output one extra blank line
-        docs.push(hardline, hardline, node.printed);
-      } else if (node.isComment) {
-        // Node is a comment, determine whether to preserve previous whitespace
-        if (prevNode && prevNode.isWhitespace) {
-          if (prevNode.hasNewLine) docs.push(hardline, node.printed);
-          else docs.push(indent(group([line, node.printed])));
+    fragments.forEach((node, index) => {
+      if (index !== 0) {
+        if (node.startLine - lastLine >= 2) {
+          docs.push(hardline, hardline);
         } else {
-          docs.push(node.printed);
+          docs.push(delimiter);
         }
-      } else if (
-        node.isReference &&
-        (lastNode.isCharData || lastNode.isReference)
-      ) {
-        // Merge this reference node onto the last nodes group/fill parts
-        const lastDoc = docs[docs.length - 1];
-        if (lastDoc.contents) {
-          lastDoc.contents[0].parts.push(line, node.printed);
-        } else {
-          docs[docs.length - 1] = group(fill([lastDoc, line, node.printed]));
-        }
-      } else if (node.isCharData && lastNode.isReference) {
-        const lastDoc = docs[docs.length - 1];
-        const parts = node.printed.contents[0].parts;
-        // Merge this text node onto the last nodes group/fill parts
-        if (lastDoc.contents) {
-          lastDoc.contents[0].parts.push(line, ...parts);
-        } else {
-          docs[docs.length - 1] = group(fill([lastDoc, line, ...parts]));
-        }
-      } else {
-        docs.push(hardline, node.printed);
       }
-      lastNode = node;
+
+      docs.push(node.printed);
+      lastLine = node.endLine;
     });
 
     return group([openTag, indent(docs), hardline, closeTag]);
   }
 
-  return group([
-    openTag,
-    indent(path.call(print, "children", "content", 0)),
-    closeTag
-  ]);
+  return group([openTag, indent(path.call(print, "content")), closeTag]);
 }
 
 function printExternalID(path, opts, print) {
-  const { Public, PubIDLiteral, System, SystemLiteral } =
-    path.getValue().children;
+  const { Public, PubIDLiteral, System, SystemLiteral } = path.getValue();
 
   if (System) {
-    return group([System[0].image, indent([line, SystemLiteral[0].image])]);
+    return group([System, indent([line, SystemLiteral])]);
   }
 
   return group([
-    group([Public[0].image, indent([line, PubIDLiteral[0].image])]),
-    indent([line, SystemLiteral[0].image])
+    group([Public, indent([line, PubIDLiteral])]),
+    indent([line, SystemLiteral])
   ]);
 }
 
+function printMisc(path, opts, print) {
+  const { Comment, PROCESSING_INSTRUCTION, SEA_WS } = path.getValue();
+
+  return Comment || PROCESSING_INSTRUCTION || SEA_WS;
+}
+
 function printProlog(path, opts, print) {
-  const { XMLDeclOpen, attribute, SPECIAL_CLOSE } = path.getValue().children;
-  const parts = [XMLDeclOpen[0].image];
+  const { XMLDeclOpen, attribute, SPECIAL_CLOSE } = path.getValue();
+  const parts = [XMLDeclOpen];
 
   if (attribute) {
-    parts.push(
-      indent([softline, join(line, path.map(print, "children", "attribute"))])
-    );
+    parts.push(indent([softline, join(line, path.map(print, "attribute"))]));
   }
 
   return group([
     ...parts,
     opts.xmlSelfClosingSpace ? line : softline,
-    SPECIAL_CLOSE[0].image
+    SPECIAL_CLOSE
   ]);
 }
 
+function printReference(path, opts, print) {
+  const { CharRef, EntityRef } = path.getValue();
+
+  return CharRef || EntityRef;
+}
+
 const printer = {
+  getVisitorKeys(node, nonTraversableKeys) {
+    return Object.keys(node).filter(
+      (key) => key !== "location" && key !== "tokenType"
+    );
+  },
   embed,
   print(path, opts, print) {
     const node = path.getValue();
@@ -581,8 +596,14 @@ const printer = {
         return printElement(path, opts, print);
       case "externalID":
         return printExternalID(path, opts, print);
+      case "misc":
+        return printMisc(path, opts, print);
       case "prolog":
         return printProlog(path, opts, print);
+      case "reference":
+        return printReference(path, opts, print);
+      default:
+        throw new Error(`Unknown node type: ${node.name}`);
     }
   }
 };

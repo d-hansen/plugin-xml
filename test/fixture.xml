@@ -116,5 +116,7 @@
   <NoEscapeNeeded name='Pete "Maverick" Mitchell'/>
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell"/>
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->

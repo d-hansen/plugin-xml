@@ -137,6 +137,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -279,6 +281,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell'/>
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell"/>
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -419,6 +423,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -595,6 +601,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -735,6 +743,8 @@ use {
   <NoEscapeNeeded name="Pete &quot;Maverick&quot; Mitchell" />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -875,6 +885,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -1015,6 +1027,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name='Pete &apos;Maverick&apos; Mitchell' />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -1163,6 +1177,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell'/>
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell"/>
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -1303,6 +1319,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -1451,6 +1469,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "
@@ -1592,6 +1612,8 @@ use {
   <NoEscapeNeeded name='Pete "Maverick" Mitchell' />
 
   <NoEscapeNeeded name="Pete 'Maverick' Mitchell" />
+
+  <xsl:text>slide </xsl:text>
 </svg>
 <!-- bar -->
 "

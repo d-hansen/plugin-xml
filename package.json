@@ -1,14 +1,20 @@
 {
   "name": "@prettier/plugin-xml",
-  "version": "3.2.3-dh",
+  "version": "3.4.1-dh",
   "description": "prettier plugin for XML",
   "type": "module",
   "main": "src/plugin.js",
-  "private": false,
+  "exports": {
+    ".": {
+      "types": "./types/plugin.d.ts",
+      "default": "./src/plugin.js"
+    },
+    "./*": "./*"
+  },
   "scripts": {
     "lint": "eslint --cache .",
     "postinstall": "node bin/languages.js",
-    "print": "prettier --plugin=.",
+    "print": "prettier --plugin=./src/plugin.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "repository": {
@@ -29,9 +35,9 @@
     "prettier": "^3.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.5.0",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.0.0",
-    "husky": "^8.0.0",
+    "husky": "^9.0.6",
     "jest": "^29.2.1",
     "lint-staged": "^15.0.1",
     "prettier": "^3.0.0"
@@ -62,10 +68,12 @@
     "transform": {}
   },
   "prettier": {
+    "embeddedLanguageFormatting": "auto",
     "plugins": [
       "./src/plugin.js"
     ],
-    "trailingComma": "none"
+    "trailingComma": "none",
+    "xmlWhitespaceSensitivity": "ignore"
   },
   "lint-staged": {
     "*.js": [
