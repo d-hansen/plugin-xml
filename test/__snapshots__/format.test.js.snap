@@ -38,14 +38,25 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div>
+      <!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
     <content apples="oranges" />
-      <!-- this comment should get wrapped and indented because it's too long -->
+    <!-- this comment should get wrapped and not-indented because it's too long -->
     <content apples="bananas" /> <!-- this comment should stay -->
     <div>
-      <content><!-- this comment should also stay here without the extra whitespace -->
+      <content><!-- this comment should stay here with no whitespace -->
         <topic>A Lot of Young Men Once were drafted</topic>
         <!-- this is a comment that should get properly formatted/indented on a new line -->
       </content>
+    </div>
+    <div><!-- comment with CData child, this one stays at the end -->
+      <![CDATA[
+      foo
+    ]]>
+      <!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
     </div>
   </div>
 
@@ -182,14 +193,25 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div>
+      <!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
     <content apples="oranges"/>
-      <!-- this comment should get wrapped and indented because it's too long -->
+    <!-- this comment should get wrapped and not-indented because it's too long -->
     <content apples="bananas"/> <!-- this comment should stay -->
     <div>
-      <content><!-- this comment should also stay here without the extra whitespace -->
+      <content><!-- this comment should stay here with no whitespace -->
         <topic>A Lot of Young Men Once were drafted</topic>
         <!-- this is a comment that should get properly formatted/indented on a new line -->
       </content>
+    </div>
+    <div><!-- comment with CData child, this one stays at the end -->
+      <![CDATA[
+      foo
+    ]]>
+      <!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
     </div>
   </div>
 
@@ -327,17 +349,27 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    ><!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
 <content
       apples="oranges"
-    /> <!-- this comment should get wrapped and indented because it's too long -->
+    /> <!-- this comment should get wrapped and not-indented because it's too long -->
   <content apples="bananas" /> <!-- this comment should stay -->
   <div>
- <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+ <content><!-- this comment should stay here with no whitespace -->
   <topic>A Lot of Young Men Once were drafted</topic>
 <!-- this is a comment that should get properly formatted/indented on a new line -->
   </content>
   </div>
+  <div><!-- comment with CData child, this one stays at the end -->
+    <![CDATA[
+      foo
+    ]]>
+<!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
+</div>
 </div>
 
   <script value="lint" />
@@ -469,15 +501,26 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    >
+      <!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
     <content apples="oranges" />
-      <!-- this comment should get wrapped and indented because it's too long -->
+    <!-- this comment should get wrapped and not-indented because it's too long -->
     <content apples="bananas" /> <!-- this comment should stay -->
     <div>
-      <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+      <content><!-- this comment should stay here with no whitespace -->
         <topic>A Lot of Young Men Once were drafted</topic>
         <!-- this is a comment that should get properly formatted/indented on a new line -->
       </content>
+    </div>
+    <div><!-- comment with CData child, this one stays at the end -->
+      <![CDATA[
+      foo
+    ]]>
+      <!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
     </div>
   </div>
 
@@ -647,17 +690,27 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    ><!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
 <content
       apples="oranges"
-    /> <!-- this comment should get wrapped and indented because it's too long -->
+    /> <!-- this comment should get wrapped and not-indented because it's too long -->
   <content apples="bananas" /> <!-- this comment should stay -->
   <div>
- <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+ <content><!-- this comment should stay here with no whitespace -->
   <topic>A Lot of Young Men Once were drafted</topic>
 <!-- this is a comment that should get properly formatted/indented on a new line -->
   </content>
   </div>
+  <div><!-- comment with CData child, this one stays at the end -->
+    <![CDATA[
+      foo
+    ]]>
+<!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
+</div>
 </div>
 
   <script value="lint" />
@@ -789,17 +842,27 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    ><!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
 <content
       apples="oranges"
-    /> <!-- this comment should get wrapped and indented because it's too long -->
+    /> <!-- this comment should get wrapped and not-indented because it's too long -->
   <content apples="bananas" /> <!-- this comment should stay -->
   <div>
- <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+ <content><!-- this comment should stay here with no whitespace -->
   <topic>A Lot of Young Men Once were drafted</topic>
 <!-- this is a comment that should get properly formatted/indented on a new line -->
   </content>
   </div>
+  <div><!-- comment with CData child, this one stays at the end -->
+    <![CDATA[
+      foo
+    ]]>
+<!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
+</div>
 </div>
 
   <script value="lint" />
@@ -931,17 +994,27 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    ><!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
 <content
       apples='oranges'
-    /> <!-- this comment should get wrapped and indented because it's too long -->
+    /> <!-- this comment should get wrapped and not-indented because it's too long -->
   <content apples='bananas' /> <!-- this comment should stay -->
   <div>
- <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+ <content><!-- this comment should stay here with no whitespace -->
   <topic>A Lot of Young Men Once were drafted</topic>
 <!-- this is a comment that should get properly formatted/indented on a new line -->
   </content>
   </div>
+  <div><!-- comment with CData child, this one stays at the end -->
+    <![CDATA[
+      foo
+    ]]>
+<!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
+</div>
 </div>
 
   <script value='lint' />
@@ -1073,15 +1146,26 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    >
+      <!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
     <content apples="oranges"/>
-      <!-- this comment should get wrapped and indented because it's too long -->
+    <!-- this comment should get wrapped and not-indented because it's too long -->
     <content apples="bananas"/> <!-- this comment should stay -->
     <div>
-      <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+      <content><!-- this comment should stay here with no whitespace -->
         <topic>A Lot of Young Men Once were drafted</topic>
         <!-- this is a comment that should get properly formatted/indented on a new line -->
       </content>
+    </div>
+    <div><!-- comment with CData child, this one stays at the end -->
+      <![CDATA[
+      foo
+    ]]>
+      <!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
     </div>
   </div>
 
@@ -1223,17 +1307,27 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    ><!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
 <content
       apples="oranges"
-    /> <!-- this comment should get wrapped and indented because it's too long -->
+    /> <!-- this comment should get wrapped and not-indented because it's too long -->
   <content apples="bananas" /> <!-- this comment should stay -->
   <div>
- <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+ <content><!-- this comment should stay here with no whitespace -->
   <topic>A Lot of Young Men Once were drafted</topic>
 <!-- this is a comment that should get properly formatted/indented on a new line -->
   </content>
   </div>
+  <div><!-- comment with CData child, this one stays at the end -->
+    <![CDATA[
+      foo
+    ]]>
+<!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
+</div>
 </div>
 
   <script value="lint" />
@@ -1365,15 +1459,26 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    >
+      <!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
     <content apples="oranges" />
-      <!-- this comment should get wrapped and indented because it's too long -->
+    <!-- this comment should get wrapped and not-indented because it's too long -->
     <content apples="bananas" /> <!-- this comment should stay -->
     <div>
-      <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+      <content><!-- this comment should stay here with no whitespace -->
         <topic>A Lot of Young Men Once were drafted</topic>
         <!-- this is a comment that should get properly formatted/indented on a new line -->
       </content>
+    </div>
+    <div><!-- comment with CData child, this one stays at the end -->
+      <![CDATA[
+      foo
+    ]]>
+      <!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
     </div>
   </div>
 
@@ -1515,15 +1620,26 @@ use {
   </style>
 
   <div><!-- this comment should always stay here on the end -->
+    <div><!--this comment should also stay here on the end and not get broken-->
+    </div>
+    <div
+    >
+      <!--this comment should get wrapped and indented within the div because it's too long and verbose to fit-->
+    </div>
     <content apples="oranges" />
-      <!-- this comment should get wrapped and indented because it's too long -->
+    <!-- this comment should get wrapped and not-indented because it's too long -->
     <content apples="bananas" /> <!-- this comment should stay -->
     <div>
-      <content
-      ><!-- this comment should also stay here without the extra whitespace -->
+      <content><!-- this comment should stay here with no whitespace -->
         <topic>A Lot of Young Men Once were drafted</topic>
         <!-- this is a comment that should get properly formatted/indented on a new line -->
       </content>
+    </div>
+    <div><!-- comment with CData child, this one stays at the end -->
+      <![CDATA[
+      foo
+    ]]>
+      <!-- comment with CData child, this one should get indented appropriately (CData contents are never touched) -->
     </div>
   </div>
 
